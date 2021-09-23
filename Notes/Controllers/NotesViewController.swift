@@ -4,14 +4,16 @@ import SnapKit
 class NotesViewController: UIViewController {
 
     // MARK: Properties
+
     let tableView = UITableView()
-    var notes = ["Newe notewwqe"]
+    var notes = ["New note New note New note New note New note New note New note New note New note New note"]
 
     // MARK: ViewController lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
+        configureNavigationBar()
         configureTableView()
         setTableViewConstraints()
     }
@@ -30,6 +32,23 @@ class NotesViewController: UIViewController {
         tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
         view.addSubview(tableView)
+    }
+
+    private func configureNavigationBar() {
+        title = "Notes"
+        navigationController?.navigationBar.prefersLargeTitles = true
+        let addNoteButton = UIBarButtonItem(
+            image: UIImage(systemName: "plus"),
+            style: .plain,
+            target: self,
+            action: #selector(addNoteTapped)
+        )
+        navigationItem.rightBarButtonItem = addNoteButton
+    }
+
+    @objc private func addNoteTapped() {
+        notes.append("Empty Note")
+        tableView.reloadData()
     }
 }
 
@@ -52,5 +71,7 @@ extension NotesViewController: UITableViewDataSource {
 extension NotesViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
+        let sketchViewcontroller = SketchViewController()
+        navigationController?.pushViewController(sketchViewcontroller, animated: true)
     }
 }
