@@ -7,12 +7,18 @@ class NotesViewController: UIViewController {
 
     let tableView = UITableView()
     var notes = ["New note New note New note New note New note New note New note New note New note New note"]
+    let lightYellowColor = UIColor(
+        red: 253/255,
+        green: 249/255,
+        blue: 169/255,
+        alpha: 1
+    )
 
     // MARK: ViewController lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .white
+
         configureNavigationBar()
         configureTableView()
         setTableViewConstraints()
@@ -31,19 +37,29 @@ class NotesViewController: UIViewController {
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
+        tableView.backgroundColor = lightYellowColor
         view.addSubview(tableView)
     }
 
     private func configureNavigationBar() {
         title = "Notes"
-        navigationController?.navigationBar.prefersLargeTitles = true
         let addNoteButton = UIBarButtonItem(
-            image: UIImage(systemName: "plus"),
+            image: UIImage(systemName: "square.and.pencil"),
             style: .plain,
             target: self,
             action: #selector(addNoteTapped)
         )
         navigationItem.rightBarButtonItem = addNoteButton
+        navigationController?.navigationBar.barTintColor = UIColor(
+            red: 90/255,
+            green: 70/255,
+            blue: 56/255,
+            alpha: 1
+        )
+        navigationController?.navigationBar.tintColor = .white
+        navigationController?.navigationBar.titleTextAttributes = [
+            NSAttributedString.Key.foregroundColor: UIColor.white
+        ]
     }
 
     @objc private func addNoteTapped() {
@@ -62,6 +78,7 @@ extension NotesViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
         cell.textLabel?.text = notes[indexPath.row]
+        cell.backgroundColor = lightYellowColor
         return cell
     }
 }
@@ -72,6 +89,7 @@ extension NotesViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         let sketchViewcontroller = SketchViewController()
+        sketchViewcontroller.textView.text = notes[indexPath.row]
         navigationController?.pushViewController(sketchViewcontroller, animated: true)
     }
 }
