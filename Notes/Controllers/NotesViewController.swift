@@ -38,6 +38,7 @@ class NotesViewController: UIViewController {
         tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
         tableView.backgroundColor = lightYellowColor
+        tableView.separatorInset = .zero
         view.addSubview(tableView)
     }
 
@@ -51,9 +52,9 @@ class NotesViewController: UIViewController {
         )
         navigationItem.rightBarButtonItem = addNoteButton
         navigationController?.navigationBar.barTintColor = UIColor(
-            red: 90/255,
-            green: 70/255,
-            blue: 56/255,
+            red: 32/255,
+            green: 15/255,
+            blue: 8/255,
             alpha: 1
         )
         navigationController?.navigationBar.tintColor = .white
