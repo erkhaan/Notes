@@ -1,0 +1,10 @@
+/Screenshots 
+README.md 
+.DS_Store
+.xcuserstate 
+xcuserstate
+xcuserdatad
+xcuserdata
+Pods
+Podfile.lock
+.swiftlint.yml
