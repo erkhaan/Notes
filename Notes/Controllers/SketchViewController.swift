@@ -14,18 +14,30 @@ class SketchViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.addSubview(textView)
-        view.backgroundColor = .white
-        textView.backgroundColor = UIColor(red: 253/255, green: 249/255, blue: 169/255, alpha: 1)
+        configureTextView()
+        setTextViewConstraints()
+    }
+
+    // MARK: Private methods
+
+    private func configureTextView() {
+        textView.backgroundColor = UIColor(
+            red: 253/255,
+            green: 249/255,
+            blue: 169/255,
+            alpha: 1
+        )
         textView.font = UIFont.systemFont(ofSize: 20)
         textView.text = note.text
         textView.delegate = self
+    }
+
+    private func setTextViewConstraints() {
         textView.translatesAutoresizingMaskIntoConstraints = false
         textView.snp.makeConstraints { maker in
             maker.top.bottom.left.right.equalTo(0)
         }
     }
-
-    // MARK: Private methods
 
     private func updateNote() {
         delegate?.updateNotes()
