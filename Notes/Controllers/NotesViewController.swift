@@ -1,12 +1,18 @@
 import UIKit
 import SnapKit
 
+protocol NotesDelegate: class {
+    func updateNotes()
+}
+
 class NotesViewController: UIViewController {
 
     // MARK: Properties
 
     let tableView = UITableView()
-    var notes = ["New note New note New note New note New note New note New note New note New note New note"]
+    var notes: [Note] = [
+        Note(text: "Sample note Sample Note")
+    ]
     let lightYellowColor = UIColor(
         red: 253/255,
         green: 249/255,
@@ -18,7 +24,6 @@ class NotesViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
         configureNavigationBar()
         configureTableView()
         setTableViewConstraints()
@@ -64,7 +69,7 @@ class NotesViewController: UIViewController {
     }
 
     @objc private func addNoteTapped() {
-        notes.append("Empty Note")
+        notes.append(Note(text: "Empty Note"))
         tableView.reloadData()
     }
 }
@@ -78,7 +83,7 @@ extension NotesViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
-        cell.textLabel?.text = notes[indexPath.row]
+        cell.textLabel?.text = notes[indexPath.row].text
         cell.backgroundColor = lightYellowColor
         return cell
     }
@@ -90,7 +95,16 @@ extension NotesViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         let sketchViewcontroller = SketchViewController()
-        sketchViewcontroller.textView.text = notes[indexPath.row]
+        sketchViewcontroller.note = notes[indexPath.row]
+        sketchViewcontroller.delegate = self
         navigationController?.pushViewController(sketchViewcontroller, animated: true)
+    }
+}
+
+// MARK: Notes Delegate
+
+extension NotesViewController: NotesDelegate {
+    func updateNotes() {
+        tableView.reloadData()
     }
 }
