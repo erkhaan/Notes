@@ -16,9 +16,44 @@ class SketchViewController: UIViewController {
         view.addSubview(textView)
         configureTextView()
         setTextViewConstraints()
+        let notificationCenter = NotificationCenter.default
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(updateKeyboard),
+            name: UIResponder.keyboardWillHideNotification,
+            object: nil
+        )
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(updateKeyboard),
+            name: UIResponder.keyboardWillChangeFrameNotification,
+            object: nil
+        )
+
     }
 
     // MARK: Private methods
+
+    @objc private func updateKeyboard(notification: Notification) {
+        let userInfo = notification.userInfo
+        let keyboardFrameKey = UIResponder.keyboardFrameEndUserInfoKey
+        guard let keyboardValue = userInfo?[keyboardFrameKey] as? NSValue else { return }
+        let keyboardScreenEndFrame = keyboardValue.cgRectValue
+        let keyboardViewEndFrame = view.convert(keyboardScreenEndFrame, from: view.window)
+        if notification.name == UIResponder.keyboardWillHideNotification {
+            textView.contentInset = .zero
+        } else {
+            textView.contentInset = UIEdgeInsets(
+                top: 0,
+                left: 0,
+                bottom: keyboardViewEndFrame.height,
+                right: 0
+            )
+        }
+        textView.scrollIndicatorInsets = textView.contentInset
+        let selectedRange = textView.selectedRange
+        textView.scrollRangeToVisible(selectedRange)
+    }
 
     private func configureTextView() {
         textView.backgroundColor = UIColor(
