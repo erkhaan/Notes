@@ -1,5 +1,6 @@
 import UIKit
 import SnapKit
+import RealmSwift
 
 protocol NotesDelegate: class {
     func updateNotes()
@@ -11,7 +12,7 @@ class NotesViewController: UIViewController {
 
     let tableView = UITableView()
     var notes: [Note] = [
-        Note(text: "Sample note Sample Note")
+        Note(text: "Sample note SampkeyboardFrameKeyle Note")
     ]
     let lightYellowColor = UIColor(
         red: 253/255,
