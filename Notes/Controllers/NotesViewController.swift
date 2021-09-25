@@ -8,12 +8,10 @@ protocol NotesDelegate: class {
 
 class NotesViewController: UIViewController {
 
-    // MARK: Properties
+    // MARK: - Properties
 
     let tableView = UITableView()
-    var notes: [Note] = [
-        Note(text: "Sample note SampkeyboardFrameKeyle Note")
-    ]
+    private var notes = List<Note>()
     let lightYellowColor = UIColor(
         red: 253/255,
         green: 249/255,
@@ -21,16 +19,50 @@ class NotesViewController: UIViewController {
         alpha: 1
     )
 
-    // MARK: ViewController lifecycle
+    // MARK: - ViewController lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        loadNotes()
+        firstListInit()
         configureNavigationBar()
         configureTableView()
         setTableViewConstraints()
     }
 
-    // MARK: Private methods
+    // MARK: - Realm methods
+
+    private func firstListInit() {
+        if notes.count == 0 {
+            let firstNote = Note(text: "Sample note note note note note note note note note")
+            notes.append(firstNote)
+        }
+    }
+
+    private func saveNotes() {
+        guard let realm = try? Realm() else {
+            print("Error opening realm")
+            return
+        }
+        do {
+            try realm.write {
+                realm.add(notes)
+            }
+        } catch let error as NSError {
+            print("Error writing to realm: \(error)")
+        }
+    }
+
+    private func loadNotes() {
+        guard let realm = try? Realm() else {
+            print("Error opening realm")
+            return
+        }
+        let realmNotes = realm.objects(Note.self)
+        notes.append(objectsIn: realmNotes)
+    }
+
+    // MARK: - Private methods
 
     private func setTableViewConstraints() {
         tableView.translatesAutoresizingMaskIntoConstraints = false
@@ -70,12 +102,24 @@ class NotesViewController: UIViewController {
     }
 
     @objc private func addNoteTapped() {
+        guard let realm = try? Realm() else {
+            print("Error opening realm")
+            return
+        }
         notes.append(Note(text: "Empty Note"))
+        do {
+            try realm.write {
+                realm.add(notes, update: .modified)
+            }
+        } catch let error as NSError {
+            print("Error writing to realm: \(error)")
+        }
+        print(notes.count)
         tableView.reloadData()
     }
 }
 
-// MARK: Table View Data Source
+// MARK: - Table View Data Source
 
 extension NotesViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -90,7 +134,7 @@ extension NotesViewController: UITableViewDataSource {
     }
 }
 
-// MARK: Table View Delegate
+// MARK: - Table View Delegate
 
 extension NotesViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -102,7 +146,7 @@ extension NotesViewController: UITableViewDelegate {
     }
 }
 
-// MARK: Notes Delegate
+// MARK: - Notes Delegate
 
 extension NotesViewController: NotesDelegate {
     func updateNotes() {

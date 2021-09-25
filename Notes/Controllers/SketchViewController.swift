@@ -1,5 +1,6 @@
 import UIKit
 import SnapKit
+import RealmSwift
 
 class SketchViewController: UIViewController {
 
@@ -83,10 +84,26 @@ class SketchViewController: UIViewController {
 
 extension SketchViewController: UITextViewDelegate {
     func textViewDidEndEditing(_ textView: UITextView) {
+        guard let realm = try? Realm() else {
+            print("Error opening realm")
+            return
+        }
         if textView.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            note.text = "Empty note"
+            do {
+                try realm.write {
+                    note.text = "Empty note"
+                }
+            } catch let error as NSError {
+                print("Error writing to realm: \(error)")
+            }
         } else {
-            note.text = textView.text
+            do {
+                try realm.write {
+                    note.text = textView.text
+                }
+            } catch let error as NSError {
+                print("Error writing to realm: \(error)")
+            }
         }
         updateNote()
     }
