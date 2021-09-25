@@ -46,7 +46,7 @@ class NotesViewController: UIViewController {
         }
         do {
             try realm.write {
-                realm.add(notes)
+                realm.add(notes, update: .modified)
             }
         } catch let error as NSError {
             print("Error writing to realm: \(error)")
@@ -102,19 +102,8 @@ class NotesViewController: UIViewController {
     }
 
     @objc private func addNoteTapped() {
-        guard let realm = try? Realm() else {
-            print("Error opening realm")
-            return
-        }
         notes.append(Note(text: "Empty Note"))
-        do {
-            try realm.write {
-                realm.add(notes, update: .modified)
-            }
-        } catch let error as NSError {
-            print("Error writing to realm: \(error)")
-        }
-        print(notes.count)
+        saveNotes()
         tableView.reloadData()
     }
 }
