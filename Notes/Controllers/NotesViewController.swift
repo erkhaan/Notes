@@ -62,6 +62,21 @@ class NotesViewController: UIViewController {
         notes.append(objectsIn: realmNotes)
     }
 
+    private func deleteNote(index: Int) {
+        guard let realm = try? Realm() else {
+            print("Error opening realm")
+            return
+        }
+        do {
+            try realm.write {
+                realm.delete(notes[index])
+                notes.remove(at: index)
+            }
+        } catch let error as NSError {
+            print("Error deleting note: \(error)")
+        }
+    }
+
     // MARK: - Private methods
 
     private func setTableViewConstraints() {
@@ -132,6 +147,17 @@ extension NotesViewController: UITableViewDelegate {
         sketchViewcontroller.note = notes[indexPath.row]
         sketchViewcontroller.delegate = self
         navigationController?.pushViewController(sketchViewcontroller, animated: true)
+    }
+
+    func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
+        true
+    }
+
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            deleteNote(index: indexPath.row)
+            tableView.deleteRows(at: [indexPath], with: .automatic)
+        }
     }
 }
 
