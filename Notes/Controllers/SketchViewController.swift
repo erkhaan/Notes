@@ -22,9 +22,20 @@ class SketchViewController: UIViewController {
         setTextViewConstraints()
         configureNotificationCenter()
         configureToolbar()
+        configureNavigationBar()
     }
 
     // MARK: - Private methods
+
+    private func configureNavigationBar() {
+        let addImageButton = UIBarButtonItem(
+            image: UIImage(systemName: "plus.rectangle"),
+            style: .plain,
+            target: self,
+            action: #selector(addImageTapped)
+        )
+        navigationItem.rightBarButtonItem = addImageButton
+    }
 
     private func configureNotificationCenter() {
         let notificationCenter = NotificationCenter.default
@@ -133,6 +144,30 @@ class SketchViewController: UIViewController {
     }
 
     // MARK: - Obj-c methods
+
+    @objc private func addImageTapped() {
+        guard let image = UIImage(named: "placeholder") else { return }
+        let imageWidth = image.size.width
+        let textViewWidth = textView.frame.size.width
+        let attachment = NSTextAttachment()
+        if imageWidth > textViewWidth {
+            let scale = imageWidth / (textViewWidth - 20)
+            guard let cgImage = image.cgImage else {
+                print("Error opening cgImage")
+                return
+            }
+            let scaledImage = UIImage(
+                cgImage: cgImage,
+                scale: scale,
+                orientation: .up
+            )
+            attachment.image = scaledImage
+        } else {
+            attachment.image = image
+        }
+        let attributedString = NSAttributedString(attachment: attachment)
+        textView.textStorage.insert(attributedString, at: textView.selectedRange.location)
+    }
 
     @objc private func fontSizeChanged(_ stepper: UIStepper) {
         fontSize = CGFloat(stepper.value)
