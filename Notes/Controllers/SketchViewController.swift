@@ -9,6 +9,7 @@ class SketchViewController: UIViewController {
     let textView = UITextView()
     weak var delegate: NotesDelegate?
     var note: Note!
+    var fontSize: Int = 20
 
     // MARK: ViewController lifecycle
 
@@ -17,6 +18,13 @@ class SketchViewController: UIViewController {
         view.addSubview(textView)
         configureTextView()
         setTextViewConstraints()
+        configureNotificationCenter()
+        configureToolbar()
+    }
+
+    // MARK: Private methods
+
+    private func configureNotificationCenter() {
         let notificationCenter = NotificationCenter.default
         notificationCenter.addObserver(
             self,
@@ -30,10 +38,41 @@ class SketchViewController: UIViewController {
             name: UIResponder.keyboardWillChangeFrameNotification,
             object: nil
         )
-
     }
 
-    // MARK: Private methods
+    private func configureToolbar() {
+        let textEditToolbar = UIToolbar(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: UIScreen.main.bounds.width,
+                height: 30
+            )
+        )
+        let fontPicker = UIButton()
+        fontPicker.addTarget(
+            self,
+            action: #selector(fontPickerTapped),
+            for: .touchUpInside
+        )
+        textEditToolbar.items = [
+            UIBarButtonItem(
+                title: "Font",
+                style: .plain,
+                target: self,
+                action: #selector(fontPickerTapped)
+            )
+        ]
+        textEditToolbar.sizeToFit()
+        textEditToolbar.barStyle = .default
+        textView.inputAccessoryView = textEditToolbar
+    }
+
+    @objc private func fontPickerTapped() {
+        let vc = UIFontPickerViewController()
+        vc.delegate = self
+        present(vc, animated: true)
+    }
 
     @objc private func updateKeyboard(notification: Notification) {
         let userInfo = notification.userInfo
@@ -63,9 +102,24 @@ class SketchViewController: UIViewController {
             blue: 169/255,
             alpha: 1
         )
-        textView.font = UIFont.systemFont(ofSize: 20)
-        textView.text = note.text
+        if note.data != nil {
+            do {
+                try textView.attributedText = NSAttributedString(
+                    data: note.data!,
+                    options: [.documentType: NSAttributedString.DocumentType.rtfd],
+                    documentAttributes: nil
+                )
+            } catch let error as NSError {
+                print("Error decoding NSAttributedString from data: \(error)")
+            }
+        } else {
+            textView.text = note.text
+        }
         textView.delegate = self
+        textView.isEditable = true
+        textView.isSelectable = true
+        textView.allowsEditingTextAttributes = true
+
     }
 
     private func setTextViewConstraints() {
@@ -83,6 +137,7 @@ class SketchViewController: UIViewController {
 // MARK: Text View Delegate
 
 extension SketchViewController: UITextViewDelegate {
+
     func textViewDidEndEditing(_ textView: UITextView) {
         guard let realm = try? Realm() else {
             print("Error opening realm")
@@ -98,13 +153,52 @@ extension SketchViewController: UITextViewDelegate {
             }
         } else {
             do {
+                guard let attributedText = textView.attributedText else { return }
+                print(attributedText)
+                guard let data = try? attributedText.data(
+                    from: NSRange(
+                        location: 0,
+                        length: attributedText.length
+                    ),
+                    documentAttributes: [
+                        .documentType: NSAttributedString.DocumentType.rtfd
+                    ]
+                ) else {
+                    return
+                }
                 try realm.write {
                     note.text = textView.text
+                    note.data = data
                 }
             } catch let error as NSError {
                 print("Error writing to realm: \(error)")
             }
         }
         updateNote()
+    }
+}
+
+// MARK: - Font Picker Delegate
+
+extension SketchViewController: UIFontPickerViewControllerDelegate {
+
+    func fontPickerViewControllerDidCancel(_ viewController: UIFontPickerViewController) {
+        viewController.dismiss(
+            animated: true,
+            completion: nil
+        )
+    }
+
+    func fontPickerViewControllerDidPickFont(_ viewController: UIFontPickerViewController) {
+        viewController.dismiss(
+            animated: true,
+            completion: nil
+        )
+        guard let descriptor = viewController.selectedFontDescriptor else { return }
+        let newFont = UIFont(descriptor: descriptor, size: CGFloat(fontSize))
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: newFont
+        ]
+        textView.typingAttributes = attributes
     }
 }
