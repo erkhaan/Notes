@@ -4,14 +4,16 @@ import RealmSwift
 
 class SketchViewController: UIViewController {
 
-    // MARK: Properties
+    // MARK: - Properties
 
     let textView = UITextView()
     weak var delegate: NotesDelegate?
     var note: Note!
     var fontSize: CGFloat = 20
+    var fontName: String = UIFont.systemFont(ofSize: UIFont.systemFontSize).fontName
+    let fontSizeLabel = UILabel()
 
-    // MARK: ViewController lifecycle
+    // MARK: - ViewController lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -22,7 +24,7 @@ class SketchViewController: UIViewController {
         configureToolbar()
     }
 
-    // MARK: Private methods
+    // MARK: - Private methods
 
     private func configureNotificationCenter() {
         let notificationCenter = NotificationCenter.default
@@ -50,22 +52,104 @@ class SketchViewController: UIViewController {
             )
         )
         let fontPicker = UIButton()
-        fontPicker.addTarget(
-            self,
-            action: #selector(fontPickerTapped),
-            for: .touchUpInside
-        )
+        let fontSizeStepper = UIStepper()
+        configureFontPicker(fontPicker)
+        configureFontSizeStepper(fontSizeStepper)
         textEditToolbar.items = [
             UIBarButtonItem(
-                title: "Font",
+                title: "Select Font",
                 style: .plain,
                 target: self,
                 action: #selector(fontPickerTapped)
-            )
+            ),
+            UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil),
+            UIBarButtonItem(customView: fontSizeLabel),
+            UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil),
+            UIBarButtonItem(customView: fontSizeStepper)
         ]
         textEditToolbar.sizeToFit()
         textEditToolbar.barStyle = .default
         textView.inputAccessoryView = textEditToolbar
+    }
+
+    private func configureFontPicker(_ button: UIButton) {
+        button.addTarget(
+            self,
+            action: #selector(fontPickerTapped),
+            for: .touchUpInside
+        )
+    }
+
+    private func configureFontSizeStepper(_ stepper: UIStepper) {
+        stepper.value = Double(fontSize)
+        stepper.addTarget(self, action: #selector(fontSizeChanged(_:)), for: .valueChanged)
+        stepper.minimumValue = 1
+        fontSizeLabel.text = "\(Int(stepper.value)) pt"
+        fontSizeLabel.lineBreakMode = NSLineBreakMode.byWordWrapping
+    }
+
+    private func configureTextView() {
+        textView.backgroundColor = UIColor(
+            red: 253/255,
+            green: 249/255,
+            blue: 169/255,
+            alpha: 1
+        )
+        if note.data != nil {
+            do {
+                try textView.attributedText = NSAttributedString(
+                    data: note.data!,
+                    options: [.documentType: NSAttributedString.DocumentType.rtfd],
+                    documentAttributes: nil
+                )
+            } catch let error as NSError {
+                print("Error decoding NSAttributedString from data: \(error)")
+            }
+        } else {
+            textView.text = note.text
+            textView.font = UIFont.systemFont(ofSize: fontSize)
+        }
+        textView.delegate = self
+        textView.isEditable = true
+        textView.isSelectable = true
+        textView.allowsEditingTextAttributes = true
+        setFontSize()
+    }
+
+    private func setFontSize() {
+        guard let curFont = textView.typingAttributes[.font] as? UIFont else { return }
+        fontSize = curFont.pointSize
+    }
+
+    private func setTextViewConstraints() {
+        textView.translatesAutoresizingMaskIntoConstraints = false
+        textView.snp.makeConstraints { maker in
+            maker.top.bottom.left.right.equalTo(0)
+        }
+    }
+
+    private func updateNote() {
+        delegate?.updateNotes()
+    }
+
+    // MARK: - Obj-c methods
+
+    @objc private func fontSizeChanged(_ stepper: UIStepper) {
+        fontSize = CGFloat(stepper.value)
+        fontSizeLabel.text = "\(Int(stepper.value)) pt"
+        guard let curFont = textView.typingAttributes[.font] as? UIFont else { return }
+        fontName = curFont.fontName
+        guard var newFont = UIFont(name: fontName, size: fontSize) else {
+            print("Font error")
+            return
+        }
+        if fontName == ".SFUI-Regular" {
+            newFont = UIFont.systemFont(ofSize: fontSize)
+        }
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: newFont
+        ]
+        textView.typingAttributes = attributes
     }
 
     @objc private func fontPickerTapped() {
@@ -94,51 +178,11 @@ class SketchViewController: UIViewController {
         let selectedRange = textView.selectedRange
         textView.scrollRangeToVisible(selectedRange)
     }
-
-    private func configureTextView() {
-        textView.backgroundColor = UIColor(
-            red: 253/255,
-            green: 249/255,
-            blue: 169/255,
-            alpha: 1
-        )
-        if note.data != nil {
-            do {
-                try textView.attributedText = NSAttributedString(
-                    data: note.data!,
-                    options: [.documentType: NSAttributedString.DocumentType.rtfd],
-                    documentAttributes: nil
-                )
-            } catch let error as NSError {
-                print("Error decoding NSAttributedString from data: \(error)")
-            }
-        } else {
-            textView.text = note.text
-            textView.font = UIFont.systemFont(ofSize: fontSize)
-        }
-        textView.delegate = self
-        textView.isEditable = true
-        textView.isSelectable = true
-        textView.allowsEditingTextAttributes = true
-
-    }
-
-    private func setTextViewConstraints() {
-        textView.translatesAutoresizingMaskIntoConstraints = false
-        textView.snp.makeConstraints { maker in
-            maker.top.bottom.left.right.equalTo(0)
-        }
-    }
-
-    private func updateNote() {
-        delegate?.updateNotes()
-    }
 }
 
-// MARK: Text View Delegate
+// MARK: - Text View Delegate
 
 extension SketchViewController: UITextViewDelegate {
-
     func textViewDidEndEditing(_ textView: UITextView) {
         guard let realm = try? Realm() else {
             print("Error opening realm")
@@ -195,6 +239,7 @@ extension SketchViewController: UIFontPickerViewControllerDelegate {
         )
         guard let descriptor = viewController.selectedFontDescriptor else { return }
         let newFont = UIFont(descriptor: descriptor, size: fontSize)
+        fontName = newFont.fontName
         let attributes: [NSAttributedString.Key: Any] = [
             .font: newFont
         ]
