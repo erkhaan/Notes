@@ -9,7 +9,7 @@ class SketchViewController: UIViewController {
     let textView = UITextView()
     weak var delegate: NotesDelegate?
     var note: Note!
-    var fontSize: Int = 20
+    var fontSize: CGFloat = 20
 
     // MARK: ViewController lifecycle
 
@@ -114,6 +114,7 @@ class SketchViewController: UIViewController {
             }
         } else {
             textView.text = note.text
+            textView.font = UIFont.systemFont(ofSize: fontSize)
         }
         textView.delegate = self
         textView.isEditable = true
@@ -154,7 +155,6 @@ extension SketchViewController: UITextViewDelegate {
         } else {
             do {
                 guard let attributedText = textView.attributedText else { return }
-                print(attributedText)
                 guard let data = try? attributedText.data(
                     from: NSRange(
                         location: 0,
@@ -181,7 +181,6 @@ extension SketchViewController: UITextViewDelegate {
 // MARK: - Font Picker Delegate
 
 extension SketchViewController: UIFontPickerViewControllerDelegate {
-
     func fontPickerViewControllerDidCancel(_ viewController: UIFontPickerViewController) {
         viewController.dismiss(
             animated: true,
@@ -195,7 +194,7 @@ extension SketchViewController: UIFontPickerViewControllerDelegate {
             completion: nil
         )
         guard let descriptor = viewController.selectedFontDescriptor else { return }
-        let newFont = UIFont(descriptor: descriptor, size: CGFloat(fontSize))
+        let newFont = UIFont(descriptor: descriptor, size: fontSize)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: newFont
         ]
