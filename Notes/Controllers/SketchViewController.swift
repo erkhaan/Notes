@@ -2,7 +2,7 @@ import UIKit
 import SnapKit
 import RealmSwift
 
-class SketchViewController: UIViewController {
+class SketchViewController: UIViewController, UINavigationControllerDelegate {
 
     // MARK: - Properties
 
@@ -125,6 +125,47 @@ class SketchViewController: UIViewController {
         textView.isSelectable = true
         textView.allowsEditingTextAttributes = true
         setFontSize()
+        text = NSMutableAttributedString(attributedString: textView.attributedText)
+        configureTextViewImage()
+        textView.attributedText = text
+    }
+
+    private var text: NSMutableAttributedString?
+    private func configureTextViewImage() {
+        let width  = view.frame.size.width - 10
+        text?.enumerateAttribute(
+            NSAttributedString.Key.attachment,
+            in: NSRange(
+                location: 0,
+                length: textView.attributedText.length
+            ),
+            options: [],
+            using: { [width] (object, range, _) in
+                let textViewAsAny: Any = self.textView
+                if let attachment = object as? NSTextAttachment,
+                   let img = attachment.image(
+                    forBounds: self.textView.bounds,
+                    textContainer: textViewAsAny as? NSTextContainer,
+                    characterIndex: range.location
+                   ) {
+                    guard let fileType = attachment.fileType else { return }
+                    if fileType == "public.png" {
+                        let aspect = img.size.width / img.size.height
+                        if img.size.width <= width {
+                            attachment.bounds = CGRect(x: 0, y: 0, width: img.size.width, height: img.size.height)
+                            return
+                        }
+                        let height = width / aspect
+                        attachment.bounds = CGRect(
+                            x: 0,
+                            y: 0,
+                            width: width,
+                            height: height
+                        )
+                        attachment.image = img
+                    }
+                }
+            })
     }
 
     private func setFontSize() {
@@ -146,27 +187,10 @@ class SketchViewController: UIViewController {
     // MARK: - Obj-c methods
 
     @objc private func addImageTapped() {
-        guard let image = UIImage(named: "placeholder") else { return }
-        let imageWidth = image.size.width
-        let textViewWidth = textView.frame.size.width
-        let attachment = NSTextAttachment()
-        if imageWidth > textViewWidth {
-            let scale = imageWidth / (textViewWidth - 20)
-            guard let cgImage = image.cgImage else {
-                print("Error opening cgImage")
-                return
-            }
-            let scaledImage = UIImage(
-                cgImage: cgImage,
-                scale: scale,
-                orientation: .up
-            )
-            attachment.image = scaledImage
-        } else {
-            attachment.image = image
-        }
-        let attributedString = NSAttributedString(attachment: attachment)
-        textView.textStorage.insert(attributedString, at: textView.selectedRange.location)
+        let imagePickerController = UIImagePickerController()
+        imagePickerController.delegate = self
+        imagePickerController.sourceType = .photoLibrary
+        present(imagePickerController, animated: true, completion: nil)
     }
 
     @objc private func fontSizeChanged(_ stepper: UIStepper) {
@@ -279,5 +303,56 @@ extension SketchViewController: UIFontPickerViewControllerDelegate {
             .font: newFont
         ]
         textView.typingAttributes = attributes
+    }
+}
+
+// MARK: - Image Picker Delegate
+
+extension SketchViewController: UIImagePickerControllerDelegate {
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true, completion: nil)
+    }
+
+    func compressImage(image: UIImage) -> UIImage? {
+        guard let imageData = image.jpeg(.lowest) else {
+            return nil
+        }
+        if imageData.count > 4000000 {
+            guard let img = UIImage(data: imageData) else { return nil }
+            return compressImage(image: img)
+        }
+        return UIImage(data: imageData)
+    }
+
+    func imagePickerController(
+        _ picker: UIImagePickerController,
+        didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+    ) {
+        if let imageFromPicker = info[.originalImage] as? UIImage {
+            guard let image = compressImage(image: imageFromPicker) else { return }
+            let imageWidth = image.size.width
+            let textViewWidth = textView.frame.size.width
+            let tmpAttributes = textView.typingAttributes
+            let imageAttachment = NSTextAttachment()
+            if imageWidth > textViewWidth {
+                let scale = (textViewWidth - 10) / imageWidth
+                let newHeight = image.size.height * scale
+                imageAttachment.bounds = CGRect(
+                    x: 0,
+                    y: 0,
+                    width: textViewWidth - 10,
+                    height: newHeight
+                )
+                imageAttachment.image = image
+            } else {
+                imageAttachment.image = image
+            }
+            let attributedString = NSAttributedString(attachment: imageAttachment)
+            let text = NSMutableAttributedString(attributedString: textView.attributedText)
+            text.append(attributedString)
+            textView.attributedText = text
+            textView.typingAttributes = tmpAttributes
+        }
+        picker.dismiss(animated: true, completion: nil)
     }
 }
