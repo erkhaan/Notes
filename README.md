@@ -8,10 +8,9 @@
 * Frameworks: Realm, SnapKit
 
 ## Preview
-![Loading gif](https://media.giphy.com/media/D3jFYYwzuzo202qHVU/giphy-downsized-large.gif)
+![Alt Text](https://github.com/notzie/Notes/blob/main/Screenshots/giphy.gif)
 
 ## Description
-- Создание одной простейшей заметки только с текстом
 - Редактирование заметки в окне собственного приложения
 - При первом запуске, приложение имеет одну заметку с текстом
 - Создание нескольких заметок в приложении
@@ -21,4 +20,4 @@
 - Сохранение всех заметок между сеансами (Realm)
 - Возможность выделять текст курсивом, жирным 
 - Возможность менять шрифт и размер текста
-- Вставка картинок (summary limit up to 4 MB)
+- Вставка картинок (summary size is limited up to 4 MB)
