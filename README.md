@@ -8,7 +8,7 @@
 * Frameworks: Realm, SnapKit
 
 ## Preview
-![Loading gif](https://media.giphy.com/media/D3jFYYwzuzo202qHVU/giphy.gif?cid=790b7611d132fd291419efa814d6e1df37f261435501527d&rid=giphy.gif&ct=g)
+![Loading gif](https://media.giphy.com/media/D3jFYYwzuzo202qHVU/giphy-downsized-large.gif)
 
 ## Description
 - Создание одной простейшей заметки только с текстом
