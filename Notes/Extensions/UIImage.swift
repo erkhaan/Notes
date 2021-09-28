@@ -1,10 +1,3 @@
-//
-//  UIImage.swift
-//  Notes
-//
-//  Created by Erkhaan on 28.09.2021.
-//
-
 import UIKit
 import Foundation
 

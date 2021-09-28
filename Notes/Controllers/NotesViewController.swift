@@ -24,19 +24,20 @@ class NotesViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         loadNotes()
-        firstListInit()
-        configureNavigationBar()
+        firstNoteInit()
         configureTableView()
-        setTableViewConstraints()
+        configureNavigationBar()
     }
 
     // MARK: - Realm methods
 
-    private func firstListInit() {
-        if notes.count == 0 {
-            let firstNote = Note(text: "Sample note note note note note note note note note")
-            notes.append(firstNote)
+    private func loadNotes() {
+        guard let realm = try? Realm() else {
+            print("Error opening realm")
+            return
         }
+        let realmNotes = realm.objects(Note.self)
+        notes.append(objectsIn: realmNotes)
     }
 
     private func saveNotes() {
@@ -51,15 +52,6 @@ class NotesViewController: UIViewController {
         } catch let error as NSError {
             print("Error writing to realm: \(error)")
         }
-    }
-
-    private func loadNotes() {
-        guard let realm = try? Realm() else {
-            print("Error opening realm")
-            return
-        }
-        let realmNotes = realm.objects(Note.self)
-        notes.append(objectsIn: realmNotes)
     }
 
     private func deleteNote(index: Int) {
@@ -79,6 +71,26 @@ class NotesViewController: UIViewController {
 
     // MARK: - Private methods
 
+    private func firstNoteInit() {
+        if notes.count == 0 {
+            let firstNote = Note(
+                // swiftlint:disable:next line_length
+                text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+            )
+            notes.append(firstNote)
+        }
+    }
+
+    private func configureTableView() {
+        view.addSubview(tableView)
+        tableView.delegate = self
+        tableView.dataSource = self
+        tableView.separatorInset = .zero
+        tableView.backgroundColor = lightYellowColor
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
+        setTableViewConstraints()
+    }
+
     private func setTableViewConstraints() {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.snp.makeConstraints { maker in
@@ -86,17 +98,19 @@ class NotesViewController: UIViewController {
         }
     }
 
-    private func configureTableView() {
-        tableView.dataSource = self
-        tableView.delegate = self
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
-        tableView.backgroundColor = lightYellowColor
-        tableView.separatorInset = .zero
-        view.addSubview(tableView)
-    }
-
     private func configureNavigationBar() {
+        guard let navigationbar = navigationController?.navigationBar else { return }
         title = "Notes"
+        navigationbar.tintColor = .white
+        navigationbar.barTintColor = UIColor(
+            red: 32/255,
+            green: 15/255,
+            blue: 8/255,
+            alpha: 1
+        )
+        navigationbar.titleTextAttributes = [
+            NSAttributedString.Key.foregroundColor: UIColor.white
+        ]
         let addNoteButton = UIBarButtonItem(
             image: UIImage(systemName: "square.and.pencil"),
             style: .plain,
@@ -104,17 +118,9 @@ class NotesViewController: UIViewController {
             action: #selector(addNoteTapped)
         )
         navigationItem.rightBarButtonItem = addNoteButton
-        navigationController?.navigationBar.barTintColor = UIColor(
-            red: 32/255,
-            green: 15/255,
-            blue: 8/255,
-            alpha: 1
-        )
-        navigationController?.navigationBar.tintColor = .white
-        navigationController?.navigationBar.titleTextAttributes = [
-            NSAttributedString.Key.foregroundColor: UIColor.white
-        ]
     }
+
+    // MARK: - Obj-c methods
 
     @objc private func addNoteTapped() {
         notes.append(Note(text: "Empty Note"))
@@ -123,9 +129,18 @@ class NotesViewController: UIViewController {
     }
 }
 
+// MARK: - Notes Delegate
+
+extension NotesViewController: NotesDelegate {
+    func updateNotes() {
+        tableView.reloadData()
+    }
+}
+
 // MARK: - Table View Data Source
 
 extension NotesViewController: UITableViewDataSource {
+
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         notes.count
     }
@@ -141,13 +156,6 @@ extension NotesViewController: UITableViewDataSource {
 // MARK: - Table View Delegate
 
 extension NotesViewController: UITableViewDelegate {
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
-        let sketchViewcontroller = SketchViewController()
-        sketchViewcontroller.note = notes[indexPath.row]
-        sketchViewcontroller.delegate = self
-        navigationController?.pushViewController(sketchViewcontroller, animated: true)
-    }
 
     func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
         true
@@ -159,12 +167,12 @@ extension NotesViewController: UITableViewDelegate {
             tableView.deleteRows(at: [indexPath], with: .automatic)
         }
     }
-}
 
-// MARK: - Notes Delegate
-
-extension NotesViewController: NotesDelegate {
-    func updateNotes() {
-        tableView.reloadData()
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        let sketchViewController = SketchViewController()
+        sketchViewController.delegate = self
+        sketchViewController.note = notes[indexPath.row]
+        navigationController?.pushViewController(sketchViewController, animated: true)
     }
 }

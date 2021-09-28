@@ -6,12 +6,13 @@ class SketchViewController: UIViewController, UINavigationControllerDelegate {
 
     // MARK: - Properties
 
-    let textView = UITextView()
     weak var delegate: NotesDelegate?
+    let textView = UITextView()
+    let fontSizeLabel = UILabel()
     var note: Note!
     var fontSize: CGFloat = 20
     var fontName: String = UIFont.systemFont(ofSize: UIFont.systemFontSize).fontName
-    let fontSizeLabel = UILabel()
+    private var text: NSMutableAttributedString?
 
     // MARK: - ViewController lifecycle
 
@@ -19,13 +20,36 @@ class SketchViewController: UIViewController, UINavigationControllerDelegate {
         super.viewDidLoad()
         view.addSubview(textView)
         configureTextView()
-        setTextViewConstraints()
-        configureNotificationCenter()
         configureToolbar()
         configureNavigationBar()
+        configureNotificationCenter()
     }
 
     // MARK: - Private methods
+
+    private func updateNote() {
+        delegate?.updateNotes()
+    }
+
+    private func setFontSize() {
+        guard let curFont = textView.typingAttributes[.font] as? UIFont else { return }
+        fontSize = curFont.pointSize
+    }
+
+    private func setTextViewConstraints() {
+        textView.translatesAutoresizingMaskIntoConstraints = false
+        textView.snp.makeConstraints { maker in
+            maker.top.bottom.left.right.equalTo(0)
+        }
+    }
+
+    private func configureFontPicker(_ button: UIButton) {
+        button.addTarget(
+            self,
+            action: #selector(fontPickerTapped),
+            for: .touchUpInside
+        )
+    }
 
     private func configureNavigationBar() {
         let addImageButton = UIBarButtonItem(
@@ -35,6 +59,14 @@ class SketchViewController: UIViewController, UINavigationControllerDelegate {
             action: #selector(addImageTapped)
         )
         navigationItem.rightBarButtonItem = addImageButton
+    }
+
+    private func configureFontSizeStepper(_ stepper: UIStepper) {
+        stepper.value = Double(fontSize)
+        stepper.addTarget(self, action: #selector(fontSizeChanged(_:)), for: .valueChanged)
+        stepper.minimumValue = 1
+        fontSizeLabel.text = "\(Int(stepper.value)) pt"
+        fontSizeLabel.lineBreakMode = NSLineBreakMode.byWordWrapping
     }
 
     private func configureNotificationCenter() {
@@ -83,29 +115,7 @@ class SketchViewController: UIViewController, UINavigationControllerDelegate {
         textView.inputAccessoryView = textEditToolbar
     }
 
-    private func configureFontPicker(_ button: UIButton) {
-        button.addTarget(
-            self,
-            action: #selector(fontPickerTapped),
-            for: .touchUpInside
-        )
-    }
-
-    private func configureFontSizeStepper(_ stepper: UIStepper) {
-        stepper.value = Double(fontSize)
-        stepper.addTarget(self, action: #selector(fontSizeChanged(_:)), for: .valueChanged)
-        stepper.minimumValue = 1
-        fontSizeLabel.text = "\(Int(stepper.value)) pt"
-        fontSizeLabel.lineBreakMode = NSLineBreakMode.byWordWrapping
-    }
-
     private func configureTextView() {
-        textView.backgroundColor = UIColor(
-            red: 253/255,
-            green: 249/255,
-            blue: 169/255,
-            alpha: 1
-        )
         if note.data != nil {
             do {
                 try textView.attributedText = NSAttributedString(
@@ -120,17 +130,23 @@ class SketchViewController: UIViewController, UINavigationControllerDelegate {
             textView.text = note.text
             textView.font = UIFont.systemFont(ofSize: fontSize)
         }
+        setFontSize()
         textView.delegate = self
         textView.isEditable = true
         textView.isSelectable = true
+        textView.backgroundColor = UIColor(
+            red: 253/255,
+            green: 249/255,
+            blue: 169/255,
+            alpha: 1
+        )
         textView.allowsEditingTextAttributes = true
-        setFontSize()
         text = NSMutableAttributedString(attributedString: textView.attributedText)
         configureTextViewImage()
         textView.attributedText = text
+        setTextViewConstraints()
     }
 
-    private var text: NSMutableAttributedString?
     private func configureTextViewImage() {
         let width  = view.frame.size.width - 10
         text?.enumerateAttribute(
@@ -142,12 +158,11 @@ class SketchViewController: UIViewController, UINavigationControllerDelegate {
             options: [],
             using: { [width] (object, range, _) in
                 let textViewAsAny: Any = self.textView
-                if let attachment = object as? NSTextAttachment,
-                   let img = attachment.image(
+                if let attachment = object as? NSTextAttachment, let img = attachment.image(
                     forBounds: self.textView.bounds,
                     textContainer: textViewAsAny as? NSTextContainer,
                     characterIndex: range.location
-                   ) {
+                ) {
                     guard let fileType = attachment.fileType else { return }
                     if fileType == "public.png" {
                         let aspect = img.size.width / img.size.height
@@ -168,23 +183,13 @@ class SketchViewController: UIViewController, UINavigationControllerDelegate {
             })
     }
 
-    private func setFontSize() {
-        guard let curFont = textView.typingAttributes[.font] as? UIFont else { return }
-        fontSize = curFont.pointSize
-    }
-
-    private func setTextViewConstraints() {
-        textView.translatesAutoresizingMaskIntoConstraints = false
-        textView.snp.makeConstraints { maker in
-            maker.top.bottom.left.right.equalTo(0)
-        }
-    }
-
-    private func updateNote() {
-        delegate?.updateNotes()
-    }
-
     // MARK: - Obj-c methods
+
+    @objc private func fontPickerTapped() {
+        let fontPickerViewController = UIFontPickerViewController()
+        fontPickerViewController.delegate = self
+        present(fontPickerViewController, animated: true)
+    }
 
     @objc private func addImageTapped() {
         let imagePickerController = UIImagePickerController()
@@ -211,12 +216,6 @@ class SketchViewController: UIViewController, UINavigationControllerDelegate {
         textView.typingAttributes = attributes
     }
 
-    @objc private func fontPickerTapped() {
-        let vc = UIFontPickerViewController()
-        vc.delegate = self
-        present(vc, animated: true)
-    }
-
     @objc private func updateKeyboard(notification: Notification) {
         let userInfo = notification.userInfo
         let keyboardFrameKey = UIResponder.keyboardFrameEndUserInfoKey
@@ -239,9 +238,34 @@ class SketchViewController: UIViewController, UINavigationControllerDelegate {
     }
 }
 
+// MARK: - Font Picker Delegate
+
+extension SketchViewController: UIFontPickerViewControllerDelegate {
+
+    func fontPickerViewControllerDidCancel(_ viewController: UIFontPickerViewController) {
+        viewController.dismiss(
+            animated: true,
+            completion: nil
+        )
+    }
+
+    func fontPickerViewControllerDidPickFont(_ viewController: UIFontPickerViewController) {
+        viewController.dismiss(
+            animated: true,
+            completion: nil
+        )
+        guard let descriptor = viewController.selectedFontDescriptor else { return }
+        let newFont = UIFont(descriptor: descriptor, size: fontSize)
+        fontName = newFont.fontName
+        let attributes: [NSAttributedString.Key: Any] = [.font: newFont]
+        textView.typingAttributes = attributes
+    }
+}
+
 // MARK: - Text View Delegate
 
 extension SketchViewController: UITextViewDelegate {
+
     func textViewDidEndEditing(_ textView: UITextView) {
         guard let realm = try? Realm() else {
             print("Error opening realm")
@@ -281,34 +305,10 @@ extension SketchViewController: UITextViewDelegate {
     }
 }
 
-// MARK: - Font Picker Delegate
-
-extension SketchViewController: UIFontPickerViewControllerDelegate {
-    func fontPickerViewControllerDidCancel(_ viewController: UIFontPickerViewController) {
-        viewController.dismiss(
-            animated: true,
-            completion: nil
-        )
-    }
-
-    func fontPickerViewControllerDidPickFont(_ viewController: UIFontPickerViewController) {
-        viewController.dismiss(
-            animated: true,
-            completion: nil
-        )
-        guard let descriptor = viewController.selectedFontDescriptor else { return }
-        let newFont = UIFont(descriptor: descriptor, size: fontSize)
-        fontName = newFont.fontName
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: newFont
-        ]
-        textView.typingAttributes = attributes
-    }
-}
-
 // MARK: - Image Picker Delegate
 
 extension SketchViewController: UIImagePickerControllerDelegate {
+
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         picker.dismiss(animated: true, completion: nil)
     }
@@ -349,7 +349,9 @@ extension SketchViewController: UIImagePickerControllerDelegate {
             }
             let attributedString = NSAttributedString(attachment: imageAttachment)
             let text = NSMutableAttributedString(attributedString: textView.attributedText)
+            text.append(NSAttributedString(string: "\n"))
             text.append(attributedString)
+            text.append(NSAttributedString(string: "\n"))
             textView.attributedText = text
             textView.typingAttributes = tmpAttributes
         }
